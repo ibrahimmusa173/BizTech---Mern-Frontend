@@ -50,14 +50,11 @@ README.md
 src/api/axiosInstance.js
 src/App.jsx
 src/assets/react.svg
-src/components/Notifications.jsx
 src/components/ProtectedRoute.jsx
-src/components/UserProfileCard.jsx
 src/index.css
 src/main.jsx
 src/pages/admin/AdminDashboard.jsx
 src/pages/client/ClientDashboard.jsx
-src/pages/EditProfile.jsx
 src/pages/ForgotPassword.jsx
 src/pages/Login.jsx
 src/pages/Profile.jsx
@@ -70,78 +67,6 @@ vite.config.js
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="src/components/Notifications.jsx">
-import { useState, useEffect } from 'react';
-import API from '../api/axiosInstance';
-
-const Notifications = () => {
-  const [notifications, setNotifications] = useState([]);
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const { data } = await API.get('/notifications');
-        setNotifications(data);
-      } catch (error) {
-        console.error('Failed to fetch notifications', error);
-      }
-    };
-
-    fetchNotifications();
-  }, []);
-
-  const markAsRead = async (id) => {
-    try {
-      await API.put(`/notifications/${id}/read`);
-      setNotifications(prevNotifications => 
-        prevNotifications.map(n => 
-          n._id === id ? { ...n, isRead: true } : n
-        )
-      );
-    } catch (error) {
-      console.error('Failed to mark notification as read', error);
-    }
-  };
-
-  if (notifications.length === 0) return null;
-
-  return (
-    <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-6">
-      <h3 className="text-xl font-bold text-white mb-4">Notifications</h3>
-      <ul className="space-y-3 max-h-60 overflow-y-auto">
-        {notifications.map((notif) => {
-          // Extracting the class string logic avoids JSX parsing errors
-          const liClass = notif.isRead
-            ? "p-3 rounded-lg flex justify-between items-center bg-gray-700/50 text-gray-400"
-            : "p-3 rounded-lg flex justify-between items-center bg-gray-700 text-white border-l-4 border-indigo-500";
-
-          return (
-            <li key={notif._id} className={liClass}>
-              <span className="text-sm">{notif.message}</span>
-              {!notif.isRead && (
-                <button 
-                  onClick={() => markAsRead(notif._id)}
-                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded transition ml-4 shrink-0"
-                >
-                  Mark as Read
-                </button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-};
-
-export default Notifications;
-</file>
-
-<file path=".gitattributes">
-# Auto detect text files and perform LF normalization
-* text=auto
-</file>
 
 <file path=".gitignore">
 # Logs
@@ -326,7 +251,6 @@ import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ClientDashboard from './pages/client/ClientDashboard';
 import VendorDashboard from './pages/vendor/VendorDashboard';
-import EditProfile from './pages/EditProfile';
 
 function App() {
   return (
@@ -358,12 +282,6 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
-          </ProtectedRoute>
-        } />
-
-         <Route path="/edit-profile" element={
-          <ProtectedRoute>
-            <EditProfile />
           </ProtectedRoute>
         } />
         
@@ -408,88 +326,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 export default ProtectedRoute;
 </file>
 
-<file path="src/components/UserProfileCard.jsx">
-// src/components/UserProfileCard.jsx
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import API from '../api/axiosInstance';
-
-const UserProfileCard = () => {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await API.get('/auth/profile');
-        // Backend returns { success: true, data: { ...user } }
-        // Axios wraps it in response.data. So we need response.data.data
-        setProfile(response.data.data);
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="bg-gray-800 rounded-2xl p-8 w-full flex items-center justify-center">
-        <div className="text-indigo-400 font-medium animate-pulse">Loading profile data...</div>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return <div className="text-red-400 p-4">Failed to load profile. Please try logging in again.</div>;
-  }
-
-  return (
-    <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8 w-full">
-      <div className="flex items-center space-x-5 mb-6 border-b border-gray-700 pb-6">
-        <div className="h-16 w-16 bg-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold uppercase text-white shadow-inner">
-          {profile.name ? profile.name.charAt(0) : 'U'}
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-white tracking-wide">{profile.name}</h2>
-          <span className="inline-block mt-1 px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-semibold rounded-full capitalize border border-indigo-500/30">
-            {profile.user_type}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-gray-700/30 p-4 rounded-xl border border-gray-700/50">
-          <p className="text-gray-400 text-sm mb-1 font-medium">Email Address</p>
-          <p className="text-lg font-semibold text-gray-200">{profile.email}</p>
-        </div>
-        
-        {/* Only show Company Name if it exists (Admin might not have one) */}
-        {profile.company_name && (
-          <div className="bg-gray-700/30 p-4 rounded-xl border border-gray-700/50">
-            <p className="text-gray-400 text-sm mb-1 font-medium">Company Name</p>
-            <p className="text-lg font-semibold text-gray-200">{profile.company_name}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-8 pt-6 border-t border-gray-700 flex justify-end">
-        <Link 
-          to="/edit-profile" 
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-lg transition duration-200 shadow-lg hover:shadow-indigo-500/30"
-        >
-          Update Profile
-        </Link>
-      </div>
-    </div>
-  );
-};
-
-export default UserProfileCard;
-</file>
-
 <file path="src/index.css">
 @import "tailwindcss";
 
@@ -523,406 +359,34 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 <file path="src/pages/admin/AdminDashboard.jsx">
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { setLogout } from '../../store/authSlice';
-import UserProfileCard from '../../components/UserProfileCard';
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    dispatch(setLogout());
-    navigate('/login');
-  };
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 md:p-12">
-      <div className="max-w-4xl mx-auto flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <button 
-          onClick={handleLogout} 
-          className="bg-red-600/90 hover:bg-red-600 px-5 py-2.5 rounded-lg text-white font-medium transition shadow-lg"
-        >
-          Logout
-        </button>
-      </div>
-      <div className="max-w-4xl mx-auto">
-         {/* Profile Card drops right in! */}
-         <UserProfileCard />
-      </div>
+    <div>
+      <h1>Admin Dashboard</h1>
+      <button onClick={() => dispatch(setLogout())}>Logout</button>
     </div>
   );
 };
-
 export default AdminDashboard;
 </file>
 
 <file path="src/pages/client/ClientDashboard.jsx">
-import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setLogout } from '../../store/authSlice';
-import API from '../../api/axiosInstance';
-import Notifications from '../../components/Notifications';
 
 const ClientDashboard = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('tenders');
-  const [tenders, setTenders] = useState([]);
-  const [proposals, setProposals] = useState([]);
-  const [selectedTender, setSelectedTender] = useState(null);
-  
-  // Trigger for re-fetching data
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Forms states
-  const [tenderForm, setTenderForm] = useState({ title: '', description: '', deadline: '' });
-  const [newDeadline, setNewDeadline] = useState('');
-  const [updatingDeadlineId, setUpdatingDeadlineId] = useState(null);
-
-  // 1. Fetch logic is now cleanly inside the useEffect
-  useEffect(() => {
-    if (activeTab === 'tenders') {
-      const fetchMyTenders = async () => {
-        try {
-          const { data } = await API.get('/tenders/client');
-          setTenders(data);
-        } catch (error) {
-          console.error('Failed to fetch tenders', error);
-        }
-      };
-      
-      fetchMyTenders();
-    }
-  }, [activeTab, refreshKey]); // Runs whenever tab changes OR refreshKey updates
-
-  const handleCreateTender = async (e) => {
-    e.preventDefault();
-    try {
-      await API.post('/tenders', tenderForm);
-      alert('Tender created successfully!');
-      setTenderForm({ title: '', description: '', deadline: '' });
-      setActiveTab('tenders');
-      setRefreshKey(prev => prev + 1); // Trigger fetch
-    } catch {
-      alert('Failed to create tender');
-    }
-  };
-
-  const handleCloseTender = async (id) => {
-    try {
-      await API.put(`/tenders/${id}/close`);
-      setRefreshKey(prev => prev + 1); // Trigger fetch
-    } catch {
-      alert('Failed to close tender');
-    }
-  };
-
-  const handleUpdateDeadline = async (id) => {
-    try {
-      await API.put(`/tenders/${id}/deadline`, { deadline: newDeadline });
-      setUpdatingDeadlineId(null);
-      setNewDeadline('');
-      setRefreshKey(prev => prev + 1); // Trigger fetch
-    } catch {
-      alert('Failed to update deadline');
-    }
-  };
-
-  const fetchProposals = async (tenderId) => {
-    try {
-      const { data } = await API.get(`/tenders/${tenderId}/proposals`);
-      setProposals(data);
-      setSelectedTender(selectedTender === tenderId ? null : tenderId); 
-    } catch {
-      alert('Failed to fetch proposals');
-    }
-  };
-
-  const handleProposalStatus = async (proposalId, status) => {
-    try {
-      await API.put(`/proposals/${proposalId}/status`, { status });
-      fetchProposals(selectedTender); // Refresh the proposals for the currently opened tender
-    } catch {
-      alert('Failed to update status');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Client Dashboard</h1>
-          <button 
-            onClick={() => dispatch(setLogout())}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold transition"
-          >
-            Logout
-          </button>
-        </div>
-
-        <Notifications />
-
-        <div className="flex gap-4 mb-6">
-          <button 
-            onClick={() => setActiveTab('tenders')}
-            className={`px-4 py-2 rounded font-semibold transition ${activeTab === 'tenders' ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          >
-            My Tenders
-          </button>
-          <button 
-            onClick={() => setActiveTab('create')}
-            className={`px-4 py-2 rounded font-semibold transition ${activeTab === 'create' ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          >
-            Create New Tender
-          </button>
-        </div>
-
-        {activeTab === 'create' && (
-          <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl">
-            <h2 className="text-2xl font-bold mb-6">Create a New Job/Tender</h2>
-            <form onSubmit={handleCreateTender} className="space-y-4 max-w-lg">
-              <input 
-                type="text" 
-                placeholder="Tender Title" 
-                className="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-indigo-500 text-white"
-                value={tenderForm.title}
-                onChange={e => setTenderForm({...tenderForm, title: e.target.value})}
-                required
-              />
-              <textarea 
-                placeholder="Job Description..." 
-                className="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-indigo-500 h-32 text-white"
-                value={tenderForm.description}
-                onChange={e => setTenderForm({...tenderForm, description: e.target.value})}
-                required
-              />
-              <div>
-                <label className="block text-gray-400 mb-1 text-sm">Deadline</label>
-                <input 
-                  type="date" 
-                  className="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-indigo-500 text-white"
-                  value={tenderForm.deadline}
-                  onChange={e => setTenderForm({...tenderForm, deadline: e.target.value})}
-                  required
-                />
-              </div>
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded font-bold w-full transition">
-                Publish Tender
-              </button>
-            </form>
-          </div>
-        )}
-
-        {activeTab === 'tenders' && (
-          <div className="space-y-6">
-            {tenders.length === 0 ? <p className="text-gray-400">You haven't created any tenders yet.</p> : tenders.map(tender => (
-              <div key={tender._id} className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
-                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-indigo-400">{tender.title}</h3>
-                    <p className="text-gray-300 mt-2">{tender.description}</p>
-                    <div className="flex gap-4 mt-3">
-                      <p className="text-sm text-gray-500">Deadline: <span className="text-white">{new Date(tender.deadline).toLocaleDateString()}</span></p>
-                      <p className="text-sm text-gray-500">Status: <span className={`font-semibold uppercase ${tender.status === 'open' ? 'text-green-400' : 'text-red-400'}`}>{tender.status}</span></p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-2 shrink-0">
-                    <button onClick={() => fetchProposals(tender._id)} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold transition">
-                      {selectedTender === tender._id ? 'Hide Proposals' : 'View Proposals'}
-                    </button>
-                    {tender.status !== 'closed' && (
-                      <>
-                        <button onClick={() => setUpdatingDeadlineId(tender._id)} className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded text-sm font-semibold transition">
-                          Update Deadline
-                        </button>
-                        <button onClick={() => handleCloseTender(tender._id)} className="bg-gray-600 hover:bg-red-600 px-4 py-2 rounded text-sm font-semibold transition">
-                          Close Tender
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {updatingDeadlineId === tender._id && (
-                  <div className="mt-4 bg-gray-700 p-4 rounded-lg flex items-center gap-3">
-                    <input 
-                      type="date" 
-                      className="p-2 rounded bg-gray-600 border border-gray-500 text-white focus:outline-none"
-                      value={newDeadline}
-                      onChange={e => setNewDeadline(e.target.value)}
-                    />
-                    <button onClick={() => handleUpdateDeadline(tender._id)} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-semibold transition">Save</button>
-                    <button onClick={() => setUpdatingDeadlineId(null)} className="text-gray-400 hover:text-white text-sm">Cancel</button>
-                  </div>
-                )}
-
-                {selectedTender === tender._id && (
-                  <div className="mt-6 border-t border-gray-700 pt-6">
-                    <h4 className="text-lg font-bold mb-4 text-white">Received Proposals</h4>
-                    {proposals.length === 0 ? <p className="text-gray-400 text-sm">No proposals submitted yet.</p> : (
-                      <div className="space-y-4">
-                        {proposals.map(proposal => (
-                          <div key={proposal._id} className="bg-gray-700 p-5 rounded-lg border border-gray-600 flex justify-between items-center gap-4">
-                            <div>
-                              <p className="font-bold text-white mb-1">{proposal.vendorId?.name || 'Vendor'}</p>
-                              <p className="text-gray-300 text-sm italic">"{proposal.cover_letter}"</p>
-                              <div className="flex gap-4 mt-2 text-sm">
-                                <p className="text-indigo-300 font-bold">Offer: ${proposal.price}</p>
-                                <p className="text-gray-400">Status: <span className="uppercase font-semibold text-white">{proposal.status}</span></p>
-                              </div>
-                            </div>
-                            
-                            {proposal.status === 'pending' && tender.status !== 'closed' && (
-                              <div className="flex gap-2 shrink-0">
-                                <button onClick={() => handleProposalStatus(proposal._id, 'accepted')} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-semibold transition">Accept</button>
-                                <button onClick={() => handleProposalStatus(proposal._id, 'rejected')} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-semibold transition">Reject</button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div>
+      <h1>Client Dashboard</h1>
+      <button onClick={() => dispatch(setLogout())}>Logout</button>
     </div>
   );
 };
-
 export default ClientDashboard;
-</file>
-
-<file path="src/pages/EditProfile.jsx">
-// src/pages/EditProfile.jsx
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import API from '../api/axiosInstance';
-
-const EditProfile = () => {
-  const [profile, setProfile] = useState({ name: '', company_name: '', email: '' });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const navigate = useNavigate();
-  const { user_type } = useSelector((state) => state.auth);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await API.get('/auth/profile');
-        const userData = response.data.data; // Correctly unwrap data
-        
-        setProfile({ 
-          name: userData.name || '', 
-          company_name: userData.company_name || '', 
-          email: userData.email || '' 
-        });
-      } catch (err) {
-        console.error("Error fetching profile", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      // Send PUT request to update profile
-      await API.put('/auth/profile', { 
-        name: profile.name, 
-        company_name: profile.company_name 
-      });
-      navigateBack();
-    } catch  {
-      alert("Update failed. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const navigateBack = () => {
-    const role = user_type?.toLowerCase();
-    if (role === 'admin') navigate('/admin/dashboard');
-    else if (role === 'client') navigate('/client/dashboard');
-    else if (role === 'vendor') navigate('/vendor/dashboard');
-    else navigate('/profile');
-  };
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading data...</div>;
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
-      <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8">
-        <h2 className="text-3xl font-bold mb-6 text-white border-b border-gray-700 pb-4">Update Profile</h2>
-
-        <form onSubmit={handleUpdate} className="space-y-5">
-          <div>
-            <label className="block text-gray-400 mb-1 text-sm">
-              Email Address <span className="text-xs text-gray-500">(Cannot be changed)</span>
-            </label>
-            <input 
-              type="email" 
-              value={profile.email} 
-              disabled
-              className="w-full p-3 rounded-lg bg-gray-700/50 border border-gray-600 text-gray-400 cursor-not-allowed focus:outline-none"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-400 mb-1 text-sm">Full Name</label>
-            <input 
-              type="text" 
-              value={profile.name} 
-              onChange={e => setProfile({...profile, name: e.target.value})} 
-              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              required 
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-400 mb-1 text-sm">Company Name</label>
-            <input 
-              type="text" 
-              value={profile.company_name} 
-              onChange={e => setProfile({...profile, company_name: e.target.value})} 
-              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-            />
-          </div>
-          
-          <div className="flex gap-4 pt-6 border-t border-gray-700 mt-6">
-            <button 
-              type="button" 
-              onClick={navigateBack}
-              className="w-1/2 bg-transparent hover:bg-gray-700 border border-gray-600 text-white font-bold py-3 rounded-lg transition duration-200"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              disabled={saving}
-              className="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition duration-200 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export default EditProfile;
 </file>
 
 <file path="src/pages/ForgotPassword.jsx">
@@ -1086,53 +550,56 @@ export default Login;
 </file>
 
 <file path="src/pages/Profile.jsx">
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
-import { setLogout } from '../store/authSlice';
-import UserProfileCard from '../components/UserProfileCard';
+import { useEffect, useState } from 'react';
+import API from '../api/axiosInstance';
 
 const Profile = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const [profile, setProfile] = useState({ name: '', company_name: '', email: '' });
+  const [loading, setLoading] = useState(true);
 
-  const { user_type } = useSelector((state) => state.auth);
+  // Load profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        // Headers are automatically attached by axiosInstance.js
+        const { data } = await API.get('/auth/profile');
+        setProfile(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching profile", err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
-  const handleLogout = () => {
-    dispatch(setLogout());
-    navigate('/login');
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      await API.put('/auth/profile', { 
+        name: profile.name, 
+        company_name: profile.company_name 
+      });
+      alert("Profile Updated!");
+    } catch  {
+      alert("Update failed");
+    }
   };
 
-  // Optional safety check to ensure user_type is recognized before rendering a link
-  const isValidUserType = user_type === 'client' || user_type === 'vendor';
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 md:p-12">
-      <div className="max-w-4xl mx-auto flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+    <div style={{ padding: '2rem' }}>
+      <h2>Your Profile</h2>
+      <p>Email: {profile.email} (Cannot be changed)</p>
+      <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px' }}>
+        <label>Name:</label>
+        <input value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} />
         
-        {/* Action Buttons Grouped Together */}
-        <div className="flex items-center gap-4">
-          {isValidUserType && (
-            <Link 
-              to={`/${user_type}/dashboard`} 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-semibold transition"
-            >
-              Go to Dashboard
-            </Link>
-          )}
-
-          <button 
-            onClick={handleLogout} 
-            className="bg-red-600/90 hover:bg-red-600 px-5 py-2.5 rounded-lg text-white font-medium transition shadow-lg"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-         <UserProfileCard />
-      </div>
+        <label>Company:</label>
+        <input value={profile.company_name} onChange={e => setProfile({...profile, company_name: e.target.value})} />
+        
+        <button type="submit">Update Profile</button>
+      </form>
     </div>
   );
 };
@@ -1242,225 +709,28 @@ export default Register;
 </file>
 
 <file path="src/pages/vendor/VendorDashboard.jsx">
-import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setLogout } from '../../store/authSlice';
-import API from '../../api/axiosInstance';
-import Notifications from '../../components/Notifications';
 
 const VendorDashboard = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('active-tenders'); 
-  const [tenders, setTenders] = useState([]);
-  const [myProposals, setMyProposals] = useState([]);
-  const [selectedTender, setSelectedTender] = useState(null); 
-  
-  // Trigger for re-fetching proposals
-  const [refreshProposals, setRefreshProposals] = useState(0);
-
-  const [proposalForm, setProposalForm] = useState({ cover_letter: '', price: '' });
-
-  // 1. Tenders Effect
-  useEffect(() => {
-    if (activeTab === 'active-tenders') {
-      const fetchActiveTenders = async () => {
-        try {
-          const { data } = await API.get('/tenders');
-          setTenders(data);
-        } catch (error) {
-          console.error('Failed to fetch active tenders', error);
-        }
-      };
-      fetchActiveTenders();
-    }
-  }, [activeTab]);
-
-  // 2. Proposals Effect
-  useEffect(() => {
-    if (activeTab === 'my-proposals') {
-      const fetchMyProposals = async () => {
-        try {
-          const { data } = await API.get('/proposals/vendor');
-          setMyProposals(data);
-        } catch (error) {
-          console.error('Failed to fetch proposals', error);
-        }
-      };
-      fetchMyProposals();
-    }
-  }, [activeTab, refreshProposals]); // Runs when tab changes OR refreshProposals increments
-
-  const fetchTenderDetails = async (id) => {
-    try {
-      const { data } = await API.get(`/tenders/${id}`);
-      setSelectedTender(data);
-    } catch {
-      alert('Failed to fetch tender details');
-    }
-  };
-
-  const handleSubmitProposal = async (e) => {
-    e.preventDefault();
-    try {
-      await API.post('/proposals', { ...proposalForm, tenderId: selectedTender._id });
-      alert('Proposal submitted successfully!');
-      setProposalForm({ cover_letter: '', price: '' });
-      setSelectedTender(null); 
-      setRefreshProposals(prev => prev + 1); // Refresh list in the background
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to submit proposal');
-    }
-  };
-
-  const handleWithdrawProposal = async (id) => {
-    if(!window.confirm("Are you sure you want to withdraw this proposal?")) return;
-    try {
-      await API.put(`/proposals/${id}/withdraw`);
-      setRefreshProposals(prev => prev + 1); // Trigger refresh
-    } catch {
-      alert('Failed to withdraw proposal');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Vendor Dashboard</h1>
-          <button 
-            onClick={() => dispatch(setLogout())}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold transition"
-          >
-            Logout
-          </button>
-        </div>
-
-        <Notifications />
-
-        <div className="flex gap-4 mb-6">
-          <button 
-            onClick={() => { setActiveTab('active-tenders'); setSelectedTender(null); }}
-            className={`px-4 py-2 rounded font-semibold transition ${activeTab === 'active-tenders' ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          >
-            Open Tenders
-          </button>
-          <button 
-            onClick={() => { setActiveTab('my-proposals'); setSelectedTender(null); }}
-            className={`px-4 py-2 rounded font-semibold transition ${activeTab === 'my-proposals' ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          >
-            My Submitted Proposals
-          </button>
-        </div>
-
-        {activeTab === 'active-tenders' && !selectedTender && (
-          <div className="space-y-4">
-            {tenders.length === 0 ? <p className="text-gray-400">No active tenders available right now.</p> : tenders.map(tender => (
-              <div key={tender._id} className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col md:flex-row justify-between items-center shadow-lg gap-4">
-                <div className="w-full">
-                  <h3 className="text-xl font-bold text-indigo-400">{tender.title}</h3>
-                  <p className="text-gray-400 truncate mt-1 text-sm">{tender.description}</p>
-                  <p className="text-sm text-gray-500 mt-2">Deadline: <span className="text-white">{new Date(tender.deadline).toLocaleDateString()}</span></p>
-                </div>
-                <button 
-                  onClick={() => fetchTenderDetails(tender._id)}
-                  className="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded font-semibold transition shrink-0 w-full md:w-auto"
-                >
-                  View Details
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'active-tenders' && selectedTender && (
-          <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl">
-            <button onClick={() => setSelectedTender(null)} className="text-sm text-gray-400 hover:text-white mb-6 font-semibold flex items-center gap-1">
-              <span>←</span> Back to Tenders
-            </button>
-            
-            <h2 className="text-3xl font-bold text-white mb-2">{selectedTender.title}</h2>
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6">
-              <p className="text-gray-300 whitespace-pre-line">{selectedTender.description}</p>
-            </div>
-            <p className="text-sm text-gray-400 mb-8 font-semibold">
-              Submissions close on: <span className="text-red-400">{new Date(selectedTender.deadline).toLocaleDateString()}</span>
-            </p>
-            
-            <div className="bg-gray-700/50 p-6 rounded-xl border border-gray-600">
-              <h3 className="text-xl font-bold mb-4">Submit Your Proposal</h3>
-              <form onSubmit={handleSubmitProposal} className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 mb-2 font-semibold">Cover Letter</label>
-                  <textarea 
-                    className="w-full p-4 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:border-indigo-500 h-40 text-white"
-                    placeholder="Describe why you are the best fit for this job..."
-                    value={proposalForm.cover_letter}
-                    onChange={e => setProposalForm({...proposalForm, cover_letter: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 mb-2 font-semibold">Your Bid / Proposed Price ($)</label>
-                  <input 
-                    type="number" 
-                    className="w-full p-4 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:border-indigo-500 text-white max-w-xs"
-                    placeholder="e.g. 500"
-                    value={proposalForm.price}
-                    onChange={e => setProposalForm({...proposalForm, price: e.target.value})}
-                    required
-                  />
-                </div>
-                <button type="submit" className="bg-green-600 hover:bg-green-700 px-8 py-3 rounded font-bold transition mt-4 w-full md:w-auto shadow-lg">
-                  Submit Proposal
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'my-proposals' && (
-          <div className="space-y-4">
-            {myProposals.length === 0 ? <p className="text-gray-400">You haven't submitted any proposals yet.</p> : myProposals.map(proposal => (
-              <div key={proposal._id} className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col md:flex-row justify-between items-start gap-4 shadow-lg">
-                <div className="w-full">
-                  <h3 className="text-lg font-bold text-indigo-400 mb-2">Tender: {proposal.tenderId?.title || 'Unknown Tender'}</h3>
-                  <div className="bg-gray-900 p-3 rounded text-sm text-gray-300 italic mb-3 border border-gray-700">
-                    "{proposal.cover_letter}"
-                  </div>
-                  <div className="flex gap-6 text-sm">
-                    <p className="text-gray-400">Your Bid: <span className="text-white font-bold">${proposal.price}</span></p>
-                    <p className="text-gray-400">Status: <span className="text-white font-bold uppercase">{proposal.status}</span></p>
-                  </div>
-                </div>
-                
-                {(proposal.status === 'pending' || proposal.status === 'submitted') && (
-                  <button 
-                    onClick={() => handleWithdrawProposal(proposal._id)}
-                    className="bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-600/50 px-4 py-2 rounded transition text-sm font-semibold shrink-0"
-                  >
-                    Withdraw
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div>
+      <h1>Vendor Dashboard</h1>
+      <button onClick={() => dispatch(setLogout())}>Logout</button>
     </div>
   );
 };
-
 export default VendorDashboard;
 </file>
 
 <file path="src/store/authSlice.js">
-// src/store/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    user: null, 
+    user: null,
     token: localStorage.getItem('token') || null,
     user_type: localStorage.getItem('user_type') || null,
   },
@@ -1470,6 +740,7 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user_type = action.payload.user_type;
       
+      // Persist to local storage
       localStorage.setItem('token', action.payload.token);
       localStorage.setItem('user_type', action.payload.user_type);
     },
@@ -1477,7 +748,6 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.user_type = null;
-      
       localStorage.removeItem('token');
       localStorage.removeItem('user_type');
     },
@@ -1511,6 +781,11 @@ export default defineConfig({
     tailwindcss()
   ],
 })
+</file>
+
+<file path=".gitattributes">
+# Auto detect text files and perform LF normalization
+* text=auto
 </file>
 
 </files>
