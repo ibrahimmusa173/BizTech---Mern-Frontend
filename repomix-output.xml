@@ -50,15 +50,23 @@ README.md
 src/api/axiosInstance.js
 src/App.jsx
 src/assets/react.svg
+src/components/Notifications.jsx
 src/components/ProtectedRoute.jsx
+src/components/UserProfileCard.jsx
 src/index.css
 src/main.jsx
 src/pages/admin/AdminDashboard.jsx
 src/pages/client/ClientDashboard.jsx
+src/pages/client/CreateTender.jsx
+src/pages/client/MyTenders.jsx
+src/pages/client/TenderProposals.jsx
+src/pages/EditProfile.jsx
 src/pages/ForgotPassword.jsx
 src/pages/Login.jsx
 src/pages/Profile.jsx
 src/pages/Register.jsx
+src/pages/vendor/ActiveTenders.jsx
+src/pages/vendor/MyProposals.jsx
 src/pages/vendor/VendorDashboard.jsx
 src/store/authSlice.js
 src/store/index.js
@@ -67,6 +75,635 @@ vite.config.js
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/pages/client/CreateTender.jsx">
+import { useState } from 'react';
+import API from '../../api/axiosInstance';
+
+const CreateTender = ({ onSuccess }) => {
+  const [formData, setFormData] = useState({ title: '', description: '', deadline: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await API.post('/tenders', formData);
+      alert('Tender created successfully!');
+      onSuccess();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to create tender.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6 text-white">Create New Tender</h2>
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+        <div>
+          <label className="block text-gray-400 mb-1">Job / Tender Title</label>
+          <input required type="text" className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500" 
+            value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+        </div>
+        <div>
+          <label className="block text-gray-400 mb-1">Description</label>
+          <textarea required className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 h-32" 
+            value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+        </div>
+        <div>
+          <label className="block text-gray-400 mb-1">Deadline</label>
+          <input required type="datetime-local" className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500" 
+            value={formData.deadline} onChange={e => setFormData({...formData, deadline: e.target.value})} />
+        </div>
+        <button disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition disabled:opacity-50">
+          {loading ? 'Creating...' : 'Submit Tender'}
+        </button>
+      </form>
+    </div>
+  );
+};
+export default CreateTender;
+</file>
+
+<file path="src/pages/client/MyTenders.jsx">
+import { useState, useEffect } from 'react';
+import API from '../../api/axiosInstance';
+import TenderProposals from './TenderProposals';
+
+const MyTenders = () => {
+  const [tenders, setTenders] = useState([]);
+  const [selectedTenderId, setSelectedTenderId] = useState(null);
+
+  useEffect(() => {
+    const fetchTenders = async () => {
+      try {
+        const { data } = await API.get('/tenders/client');
+        setTenders(data);
+      } catch (error) {
+        console.error('Failed to fetch tenders:', error);
+      }
+    };
+
+    fetchTenders();
+  }, []);
+
+  const handleClose = async (id) => {
+    if (!window.confirm("Are you sure you want to close this tender?")) return;
+
+    try {
+      await API.put(`/tenders/${id}/close`);
+
+      // Update state locally instead of refetching
+      setTenders((prev) =>
+        prev.map((tender) =>
+          tender._id === id ? { ...tender, status: 'closed' } : tender
+        )
+      );
+    } catch (error) {
+      console.error('Failed to close tender:', error);
+      alert('Failed to close tender');
+    }
+  };
+
+  const handleUpdateDeadline = async (id) => {
+    const newDate = prompt("Enter new deadline (Format: YYYY-MM-DDTHH:mm):");
+    if (!newDate) return;
+
+    try {
+      await API.put(`/tenders/${id}/deadline`, { deadline: newDate });
+
+      // Update state locally instead of refetching
+      setTenders((prev) =>
+        prev.map((tender) =>
+          tender._id === id ? { ...tender, deadline: newDate } : tender
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update deadline:', error);
+      alert('Failed to update deadline');
+    }
+  };
+
+  if (selectedTenderId) {
+    return (
+      <TenderProposals
+        tenderId={selectedTenderId}
+        onBack={() => setSelectedTenderId(null)}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">My Posted Tenders</h2>
+
+      {tenders.length === 0 ? (
+        <p className="text-gray-400">
+          You haven't created any tenders yet.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {tenders.map((tender) => (
+            <div
+              key={tender._id}
+              className="bg-gray-700 p-5 rounded border border-gray-600"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="text-xl font-semibold text-white">
+                  {tender.title}
+                </h3>
+
+                <span
+                  className={`px-3 py-1 text-xs rounded font-bold ${
+                    tender.status === 'open'
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}
+                >
+                  {tender.status?.toUpperCase() || 'OPEN'}
+                </span>
+              </div>
+
+              <p className="text-gray-300 mb-4 line-clamp-2">
+                {tender.description}
+              </p>
+
+              <p className="text-sm text-gray-400 mb-4">
+                Deadline: {new Date(tender.deadline).toLocaleString()}
+              </p>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setSelectedTenderId(tender._id)}
+                  className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm transition font-medium"
+                >
+                  View Proposals
+                </button>
+
+                {tender.status !== 'closed' && (
+                  <>
+                    <button
+                      onClick={() => handleUpdateDeadline(tender._id)}
+                      className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded text-sm transition font-medium"
+                    >
+                      Update Deadline
+                    </button>
+
+                    <button
+                      onClick={() => handleClose(tender._id)}
+                      className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition font-medium"
+                    >
+                      Close Tender
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MyTenders;
+</file>
+
+<file path="src/pages/client/TenderProposals.jsx">
+import { useState, useEffect } from 'react';
+import API from '../../api/axiosInstance';
+
+const TenderProposals = ({ tenderId, onBack }) => {
+  const [proposals, setProposals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProposals = async () => {
+      try {
+        const { data } = await API.get(`/tenders/${tenderId}/proposals`);
+        setProposals(data);
+      } catch (error) {
+        console.error('Failed to fetch proposals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (tenderId) {
+      fetchProposals();
+    }
+  }, [tenderId]);
+
+  const handleStatus = async (id, status) => {
+    if (!window.confirm(`Are you sure you want to ${status} this proposal?`)) return;
+
+    try {
+      await API.put(`/proposals/${id}/status`, { status });
+
+      // Update UI locally instead of refetching
+      setProposals((prev) =>
+        prev.map((proposal) =>
+          proposal._id === id ? { ...proposal, status } : proposal
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update proposal status:', error);
+      alert('Failed to update status');
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        className="text-indigo-400 hover:text-indigo-300 mb-6 flex items-center transition"
+      >
+        ← Back to Tenders
+      </button>
+
+      <h2 className="text-2xl font-bold mb-6 text-white">
+        Submitted Proposals
+      </h2>
+
+      {loading ? (
+        <p className="text-gray-400">Loading proposals...</p>
+      ) : proposals.length === 0 ? (
+        <p className="text-gray-400">
+          No proposals submitted for this tender yet.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {proposals.map((prop) => (
+            <div
+              key={prop._id}
+              className="bg-gray-700 p-5 rounded border border-gray-600"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h4 className="font-bold text-lg text-white">
+                    {prop.vendor?.company_name ||
+                      prop.vendor?.name ||
+                      'Vendor'}
+                  </h4>
+
+                  <p className="text-sm text-green-400 font-medium mt-1">
+                    Bid Amount: $
+                    {prop.bid_amount || prop.amount}
+                  </p>
+                </div>
+
+                <span
+                  className={`px-3 py-1 text-xs rounded font-bold ${
+                    prop.status === 'accepted'
+                      ? 'bg-green-500/20 text-green-400'
+                      : prop.status === 'rejected'
+                      ? 'bg-red-500/20 text-red-400'
+                      : 'bg-yellow-500/20 text-yellow-400'
+                  }`}
+                >
+                  {prop.status?.toUpperCase() || 'PENDING'}
+                </span>
+              </div>
+
+              <div className="bg-gray-800 p-3 rounded mb-4">
+                <p className="text-gray-300 whitespace-pre-wrap text-sm">
+                  {prop.cover_letter || prop.details}
+                </p>
+              </div>
+
+              {prop.status === 'pending' && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() =>
+                      handleStatus(prop._id, 'accepted')
+                    }
+                    className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm transition font-bold"
+                  >
+                    Accept
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleStatus(prop._id, 'rejected')
+                    }
+                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition font-bold"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TenderProposals;
+</file>
+
+<file path="src/pages/vendor/ActiveTenders.jsx">
+import { useState, useEffect } from 'react';
+import API from '../../api/axiosInstance';
+
+const ActiveTenders = () => {
+  const [tenders, setTenders] = useState([]);
+  const [selectedTender, setSelectedTender] = useState(null);
+
+  useEffect(() => {
+    const fetchTenders = async () => {
+      try {
+        const { data } = await API.get('/tenders');
+        setTenders(data);
+      } catch (error) {
+        console.error('Failed to fetch tenders:', error);
+      }
+    };
+
+    fetchTenders();
+  }, []);
+
+  if (selectedTender) {
+    return (
+      <TenderDetails
+        tenderId={selectedTender}
+        onBack={() => setSelectedTender(null)}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">
+        Active / Open Tenders
+      </h2>
+
+      {tenders.length === 0 ? (
+        <p className="text-gray-400">
+          No open tenders available at the moment.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {tenders.map((tender) => (
+            <div
+              key={tender._id}
+              className="bg-gray-700 p-5 rounded border border-gray-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+            >
+              <div>
+                <h3 className="text-xl font-semibold text-white">
+                  {tender.title}
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Deadline:{' '}
+                  {new Date(tender.deadline).toLocaleString()}
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  setSelectedTender(tender._id)
+                }
+                className="bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded transition font-medium whitespace-nowrap"
+              >
+                View Details & Bid
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TenderDetails = ({ tenderId, onBack }) => {
+  const [tender, setTender] = useState(null);
+  const [proposalData, setProposalData] = useState({
+    amount: '',
+    cover_letter: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchTender = async () => {
+      try {
+        const { data } = await API.get(
+          `/tenders/${tenderId}`
+        );
+        setTender(data);
+      } catch (error) {
+        console.error(
+          'Failed to fetch tender details:',
+          error
+        );
+      }
+    };
+
+    fetchTender();
+  }, [tenderId]);
+
+  const handleSubmitProposal = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      await API.post('/proposals', {
+        tenderId,
+        tender_id: tenderId,
+        bid_amount: proposalData.amount,
+        amount: proposalData.amount,
+        cover_letter: proposalData.cover_letter,
+        details: proposalData.cover_letter,
+      });
+
+      alert('Proposal submitted successfully!');
+      onBack();
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          'Failed to submit proposal'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!tender)
+    return (
+      <p className="text-gray-400">
+        Loading tender details...
+      </p>
+    );
+
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        className="text-indigo-400 hover:text-indigo-300 mb-6 flex items-center transition"
+      >
+        ← Back to Active Tenders
+      </button>
+
+      <div className="bg-gray-700 p-6 rounded border border-gray-600 mb-8">
+        <h2 className="text-2xl font-bold mb-3 text-white">
+          {tender.title}
+        </h2>
+
+        <p className="text-gray-300 mb-6 whitespace-pre-wrap">
+          {tender.description}
+        </p>
+
+        <p className="text-sm text-red-400 font-bold">
+          Deadline:{' '}
+          {new Date(tender.deadline).toLocaleString()}
+        </p>
+      </div>
+
+      <h3 className="text-xl font-bold mb-4 text-white">
+        Submit a Proposal
+      </h3>
+
+      <form
+        onSubmit={handleSubmitProposal}
+        className="space-y-4 max-w-lg"
+      >
+        <div>
+          <label className="block text-gray-400 mb-1">
+            Bid Amount ($)
+          </label>
+          <input
+            required
+            type="number"
+            className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500"
+            value={proposalData.amount}
+            onChange={(e) =>
+              setProposalData({
+                ...proposalData,
+                amount: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-400 mb-1">
+            Cover Letter / Proposal Details
+          </label>
+          <textarea
+            required
+            className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 h-32"
+            value={proposalData.cover_letter}
+            onChange={(e) =>
+              setProposalData({
+                ...proposalData,
+                cover_letter: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <button
+          disabled={submitting}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition disabled:opacity-50"
+        >
+          {submitting
+            ? 'Submitting...'
+            : 'Submit Proposal'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default ActiveTenders;
+</file>
+
+<file path="src/pages/vendor/MyProposals.jsx">
+import { useState, useEffect } from 'react';
+import API from '../../api/axiosInstance';
+
+const MyProposals = () => {
+  const [proposals, setProposals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProposals = async () => {
+      try {
+        const { data } = await API.get('/proposals/vendor');
+        setProposals(data);
+      } catch (error) {
+        console.error('Failed to fetch proposals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProposals();
+  }, []);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">My Submitted Proposals</h2>
+
+      {loading ? (
+        <p className="text-gray-400">Loading proposals...</p>
+      ) : proposals.length === 0 ? (
+        <p className="text-gray-400">
+          You haven't submitted any proposals yet.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {proposals.map((proposal) => (
+            <div
+              key={proposal._id}
+              className="bg-gray-700 p-5 rounded border border-gray-600"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {proposal.tender?.title || 'Tender'}
+                  </h3>
+                  <p className="text-sm text-green-400 mt-1">
+                    Bid Amount: $
+                    {proposal.bid_amount || proposal.amount}
+                  </p>
+                </div>
+
+                <span
+                  className={`px-3 py-1 text-xs rounded font-bold ${
+                    proposal.status === 'accepted'
+                      ? 'bg-green-500/20 text-green-400'
+                      : proposal.status === 'rejected'
+                      ? 'bg-red-500/20 text-red-400'
+                      : 'bg-yellow-500/20 text-yellow-400'
+                  }`}
+                >
+                  {proposal.status?.toUpperCase() || 'PENDING'}
+                </span>
+              </div>
+
+              <div className="bg-gray-800 p-3 rounded">
+                <p className="text-gray-300 whitespace-pre-wrap text-sm">
+                  {proposal.cover_letter || proposal.details}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MyProposals;
+</file>
+
+<file path=".gitattributes">
+# Auto detect text files and perform LF normalization
+* text=auto
+</file>
 
 <file path=".gitignore">
 # Logs
@@ -240,64 +877,6 @@ API.interceptors.response.use(
 export default API;
 </file>
 
-<file path="src/App.jsx">
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
-import ForgotPassword from './pages/ForgotPassword';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ClientDashboard from './pages/client/ClientDashboard';
-import VendorDashboard from './pages/vendor/VendorDashboard';
-
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        
-        <Route path="/admin/dashboard" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/client/dashboard" element={
-          <ProtectedRoute allowedRoles={['client']}>
-            <ClientDashboard />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/vendor/dashboard" element={
-          <ProtectedRoute allowedRoles={['vendor']}>
-            <VendorDashboard />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/unauthorized" element={
-          <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-            <h1 className="text-2xl">Access Denied</h1>
-          </div>
-        } />
-      </Routes>
-    </BrowserRouter>
-  );
-}
-
-export default App;
-</file>
-
 <file path="src/assets/react.svg">
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
 </file>
@@ -324,6 +903,88 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 export default ProtectedRoute;
+</file>
+
+<file path="src/components/UserProfileCard.jsx">
+// src/components/UserProfileCard.jsx
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import API from '../api/axiosInstance';
+
+const UserProfileCard = () => {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await API.get('/auth/profile');
+        // Backend returns { success: true, data: { ...user } }
+        // Axios wraps it in response.data. So we need response.data.data
+        setProfile(response.data.data);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-800 rounded-2xl p-8 w-full flex items-center justify-center">
+        <div className="text-indigo-400 font-medium animate-pulse">Loading profile data...</div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return <div className="text-red-400 p-4">Failed to load profile. Please try logging in again.</div>;
+  }
+
+  return (
+    <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8 w-full">
+      <div className="flex items-center space-x-5 mb-6 border-b border-gray-700 pb-6">
+        <div className="h-16 w-16 bg-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold uppercase text-white shadow-inner">
+          {profile.name ? profile.name.charAt(0) : 'U'}
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-wide">{profile.name}</h2>
+          <span className="inline-block mt-1 px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-semibold rounded-full capitalize border border-indigo-500/30">
+            {profile.user_type}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-gray-700/30 p-4 rounded-xl border border-gray-700/50">
+          <p className="text-gray-400 text-sm mb-1 font-medium">Email Address</p>
+          <p className="text-lg font-semibold text-gray-200">{profile.email}</p>
+        </div>
+        
+        {/* Only show Company Name if it exists (Admin might not have one) */}
+        {profile.company_name && (
+          <div className="bg-gray-700/30 p-4 rounded-xl border border-gray-700/50">
+            <p className="text-gray-400 text-sm mb-1 font-medium">Company Name</p>
+            <p className="text-lg font-semibold text-gray-200">{profile.company_name}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-gray-700 flex justify-end">
+        <Link 
+          to="/edit-profile" 
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-lg transition duration-200 shadow-lg hover:shadow-indigo-500/30"
+        >
+          Update Profile
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+export default UserProfileCard;
 </file>
 
 <file path="src/index.css">
@@ -359,34 +1020,166 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 <file path="src/pages/admin/AdminDashboard.jsx">
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { setLogout } from '../../store/authSlice';
+import UserProfileCard from '../../components/UserProfileCard';
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(setLogout());
+    navigate('/login');
+  };
+
   return (
-    <div>
-      <h1>Admin Dashboard</h1>
-      <button onClick={() => dispatch(setLogout())}>Logout</button>
+    <div className="min-h-screen bg-gray-900 text-white p-6 md:p-12">
+      <div className="max-w-4xl mx-auto flex justify-between items-center mb-10">
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <button 
+          onClick={handleLogout} 
+          className="bg-red-600/90 hover:bg-red-600 px-5 py-2.5 rounded-lg text-white font-medium transition shadow-lg"
+        >
+          Logout
+        </button>
+      </div>
+      <div className="max-w-4xl mx-auto">
+         {/* Profile Card drops right in! */}
+         <UserProfileCard />
+      </div>
     </div>
   );
 };
+
 export default AdminDashboard;
 </file>
 
-<file path="src/pages/client/ClientDashboard.jsx">
-import { useDispatch } from 'react-redux';
-import { setLogout } from '../../store/authSlice';
+<file path="src/pages/EditProfile.jsx">
+// src/pages/EditProfile.jsx
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import API from '../api/axiosInstance';
 
-const ClientDashboard = () => {
-  const dispatch = useDispatch();
+const EditProfile = () => {
+  const [profile, setProfile] = useState({ name: '', company_name: '', email: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
+  const { user_type } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await API.get('/auth/profile');
+        const userData = response.data.data; // Correctly unwrap data
+        
+        setProfile({ 
+          name: userData.name || '', 
+          company_name: userData.company_name || '', 
+          email: userData.email || '' 
+        });
+      } catch (err) {
+        console.error("Error fetching profile", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // Send PUT request to update profile
+      await API.put('/auth/profile', { 
+        name: profile.name, 
+        company_name: profile.company_name 
+      });
+      navigateBack();
+    } catch  {
+      alert("Update failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const navigateBack = () => {
+    const role = user_type?.toLowerCase();
+    if (role === 'admin') navigate('/admin/dashboard');
+    else if (role === 'client') navigate('/client/dashboard');
+    else if (role === 'vendor') navigate('/vendor/dashboard');
+    else navigate('/profile');
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading data...</div>;
+  }
+
   return (
-    <div>
-      <h1>Client Dashboard</h1>
-      <button onClick={() => dispatch(setLogout())}>Logout</button>
+    <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+      <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8">
+        <h2 className="text-3xl font-bold mb-6 text-white border-b border-gray-700 pb-4">Update Profile</h2>
+
+        <form onSubmit={handleUpdate} className="space-y-5">
+          <div>
+            <label className="block text-gray-400 mb-1 text-sm">
+              Email Address <span className="text-xs text-gray-500">(Cannot be changed)</span>
+            </label>
+            <input 
+              type="email" 
+              value={profile.email} 
+              disabled
+              className="w-full p-3 rounded-lg bg-gray-700/50 border border-gray-600 text-gray-400 cursor-not-allowed focus:outline-none"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-gray-400 mb-1 text-sm">Full Name</label>
+            <input 
+              type="text" 
+              value={profile.name} 
+              onChange={e => setProfile({...profile, name: e.target.value})} 
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+              required 
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-400 mb-1 text-sm">Company Name</label>
+            <input 
+              type="text" 
+              value={profile.company_name} 
+              onChange={e => setProfile({...profile, company_name: e.target.value})} 
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            />
+          </div>
+          
+          <div className="flex gap-4 pt-6 border-t border-gray-700 mt-6">
+            <button 
+              type="button" 
+              onClick={navigateBack}
+              className="w-1/2 bg-transparent hover:bg-gray-700 border border-gray-600 text-white font-bold py-3 rounded-lg transition duration-200"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition duration-200 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
-export default ClientDashboard;
+
+export default EditProfile;
 </file>
 
 <file path="src/pages/ForgotPassword.jsx">
@@ -444,167 +1237,6 @@ const ForgotPassword = () => {
 };
 
 export default ForgotPassword;
-</file>
-
-<file path="src/pages/Login.jsx">
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
-import { setLogin } from '../store/authSlice';
-import API from '../api/axiosInstance';
-
-const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data } = await API.post('/auth/login', { email, password });
-      
-      // Save to Redux
-      dispatch(setLogin({
-        token: data.token,
-        user_type: data.user_type,
-        user: data.user
-      }));
-
-      // Role-based navigation
-      const role = data.user_type?.toLowerCase();
-      if (role === 'admin') navigate('/admin/dashboard');
-      else if (role === 'client') navigate('/client/dashboard');
-      else if (role === 'vendor') navigate('/vendor/dashboard');
-      else navigate('/profile');
-
-    } catch (error) {
-      alert(error.response?.data?.message || "Login failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-900 px-4">
-      <div className="max-w-md w-full bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
-        <h2 className="text-3xl font-bold text-white text-center mb-6">Welcome Back</h2>
-        
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="text-left">
-            <label className="block text-gray-400 mb-1">Email Address</label>
-            <input 
-              type="email" 
-              autoComplete="email"
-              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="name@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-          </div>
-          
-          <div className="text-left">
-            <label className="block text-gray-400 mb-1">Password</label>
-            <input 
-              type="password" 
-              autoComplete="current-password"
-              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <Link to="/forgot-password" virtual="true" className="text-sm text-indigo-400 hover:text-indigo-300">
-              Forgot Password?
-            </Link>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded transition duration-200 disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? "Signing in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-gray-400">
-          Don't have an account? {' '}
-          <Link to="/register" className="text-indigo-400 font-medium hover:underline">
-            Register now
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-};
-
-export default Login;
-</file>
-
-<file path="src/pages/Profile.jsx">
-import { useEffect, useState } from 'react';
-import API from '../api/axiosInstance';
-
-const Profile = () => {
-  const [profile, setProfile] = useState({ name: '', company_name: '', email: '' });
-  const [loading, setLoading] = useState(true);
-
-  // Load profile on mount
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        // Headers are automatically attached by axiosInstance.js
-        const { data } = await API.get('/auth/profile');
-        setProfile(data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching profile", err);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      await API.put('/auth/profile', { 
-        name: profile.name, 
-        company_name: profile.company_name 
-      });
-      alert("Profile Updated!");
-    } catch  {
-      alert("Update failed");
-    }
-  };
-
-  if (loading) return <p>Loading...</p>;
-
-  return (
-    <div style={{ padding: '2rem' }}>
-      <h2>Your Profile</h2>
-      <p>Email: {profile.email} (Cannot be changed)</p>
-      <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px' }}>
-        <label>Name:</label>
-        <input value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} />
-        
-        <label>Company:</label>
-        <input value={profile.company_name} onChange={e => setProfile({...profile, company_name: e.target.value})} />
-        
-        <button type="submit">Update Profile</button>
-      </form>
-    </div>
-  );
-};
-
-export default Profile;
 </file>
 
 <file path="src/pages/Register.jsx">
@@ -708,29 +1340,14 @@ const Register = () => {
 export default Register;
 </file>
 
-<file path="src/pages/vendor/VendorDashboard.jsx">
-import { useDispatch } from 'react-redux';
-import { setLogout } from '../../store/authSlice';
-
-const VendorDashboard = () => {
-  const dispatch = useDispatch();
-  return (
-    <div>
-      <h1>Vendor Dashboard</h1>
-      <button onClick={() => dispatch(setLogout())}>Logout</button>
-    </div>
-  );
-};
-export default VendorDashboard;
-</file>
-
 <file path="src/store/authSlice.js">
+// src/store/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    user: null,
+    user: null, 
     token: localStorage.getItem('token') || null,
     user_type: localStorage.getItem('user_type') || null,
   },
@@ -740,7 +1357,6 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user_type = action.payload.user_type;
       
-      // Persist to local storage
       localStorage.setItem('token', action.payload.token);
       localStorage.setItem('user_type', action.payload.user_type);
     },
@@ -748,6 +1364,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.user_type = null;
+      
       localStorage.removeItem('token');
       localStorage.removeItem('user_type');
     },
@@ -783,9 +1400,469 @@ export default defineConfig({
 })
 </file>
 
-<file path=".gitattributes">
-# Auto detect text files and perform LF normalization
-* text=auto
+<file path="src/components/Notifications.jsx">
+import { useState, useEffect } from 'react';
+import API from '../api/axiosInstance';
+
+const Notifications = () => {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await API.get('/notifications');
+        setNotifications(data);
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const markAsRead = async (id) => {
+    try {
+      await API.put(`/notifications/${id}/read`);
+
+      // Update UI locally instead of refetching
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notif) =>
+          notif._id === id
+            ? { ...notif, isRead: true }
+            : notif
+        )
+      );
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6">
+      <h3 className="text-xl font-bold text-white mb-4">Notifications</h3>
+
+      {notifications.length === 0 ? (
+        <p className="text-gray-400 text-sm">No new notifications.</p>
+      ) : (
+        <ul className="space-y-2 max-h-64 overflow-y-auto">
+          {notifications.map((notif) => (
+            <li
+              key={notif._id}
+              className={`p-3 rounded flex flex-col gap-2 ${
+                notif.isRead
+                  ? 'bg-gray-700 opacity-70'
+                  : 'bg-gray-700 border-l-4 border-indigo-500'
+              }`}
+            >
+              <span className="text-white text-sm">
+                {notif.message}
+              </span>
+
+              {!notif.isRead && (
+                <button
+                  onClick={() => markAsRead(notif._id)}
+                  className="self-start text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded transition"
+                >
+                  Mark as Read
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+export default Notifications;
+</file>
+
+<file path="src/App.jsx">
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ClientDashboard from './pages/client/ClientDashboard';
+import VendorDashboard from './pages/vendor/VendorDashboard';
+import EditProfile from './pages/EditProfile';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/client/dashboard" element={
+          <ProtectedRoute allowedRoles={['client']}>
+            <ClientDashboard />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/vendor/dashboard" element={
+          <ProtectedRoute allowedRoles={['vendor']}>
+            <VendorDashboard />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+
+         <Route path="/edit-profile" element={
+          <ProtectedRoute>
+            <EditProfile />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/unauthorized" element={
+          <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+            <h1 className="text-2xl">Access Denied</h1>
+          </div>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+</file>
+
+<file path="src/pages/client/ClientDashboard.jsx">
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { setLogout } from '../../store/authSlice';
+import Notifications from '../../components/Notifications';
+import CreateTender from './CreateTender';
+import MyTenders from './MyTenders';
+
+const ClientDashboard = () => {
+  const dispatch = useDispatch();
+  const [activeTab, setActiveTab] = useState('my_tenders');
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+          <h1 className="text-3xl font-bold">Client Dashboard</h1>
+          <div className="flex gap-4">
+            <Link to="/profile" className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded font-bold transition flex items-center">
+              Profile
+            </Link>
+            <button onClick={() => dispatch(setLogout())} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold transition">
+              Logout
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <Notifications />
+            <div className="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col space-y-2">
+              <button 
+                onClick={() => setActiveTab('my_tenders')}
+                className={`w-full text-left px-4 py-3 rounded font-medium transition ${activeTab === 'my_tenders' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
+              >
+                My Tenders
+              </button>
+              <button 
+                onClick={() => setActiveTab('create')}
+                className={`w-full text-left px-4 py-3 rounded font-medium transition ${activeTab === 'create' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
+              >
+                Create New Tender
+              </button>
+            </div>
+          </div>
+          
+          <div className="lg:col-span-3 bg-gray-800 p-6 rounded-xl border border-gray-700 min-h-[500px]">
+            {activeTab === 'create' && <CreateTender onSuccess={() => setActiveTab('my_tenders')} />}
+            {activeTab === 'my_tenders' && <MyTenders />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default ClientDashboard;
+</file>
+
+<file path="src/pages/Login.jsx">
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate, Link } from 'react-router-dom';
+import { setLogin } from '../store/authSlice';
+import API from '../api/axiosInstance';
+
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await API.post('/auth/login', { email, password });
+      
+      // Save to Redux
+      dispatch(setLogin({
+        token: data.token,
+        user_type: data.user_type,
+        user: data.user
+      }));
+
+      // Role-based navigation - STRICTLY TO DASHBOARDS
+      const role = data.user_type?.toLowerCase();
+      if (role === 'admin') navigate('/admin/dashboard');
+      else if (role === 'vendor') navigate('/vendor/dashboard');
+      else navigate('/client/dashboard'); // Default goes to client dashboard instead of profile
+
+    } catch (error) {
+      alert(error.response?.data?.message || "Login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-900 px-4">
+      <div className="max-w-md w-full bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
+        <h2 className="text-3xl font-bold text-white text-center mb-6">Welcome Back</h2>
+        
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="text-left">
+            <label className="block text-gray-400 mb-1">Email Address</label>
+            <input 
+              type="email" 
+              autoComplete="email"
+              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              placeholder="name@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required 
+            />
+          </div>
+          
+          <div className="text-left">
+            <label className="block text-gray-400 mb-1">Password</label>
+            <input 
+              type="password" 
+              autoComplete="current-password"
+              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required 
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Link to="/forgot-password" virtual="true" className="text-sm text-indigo-400 hover:text-indigo-300">
+              Forgot Password?
+            </Link>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded transition duration-200 disabled:opacity-50 cursor-pointer"
+          >
+            {loading ? "Signing in..." : "Login"}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-gray-400">
+          Don't have an account? {' '}
+          <Link to="/register" className="text-indigo-400 font-medium hover:underline">
+            Register now
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+</file>
+
+<file path="src/pages/Profile.jsx">
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { setLogout } from '../store/authSlice';
+import API from '../api/axiosInstance';
+
+const Profile = () => {
+  const { user_type } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+
+  const [profile, setProfile] = useState({
+    name: '',
+    company_name: '',
+    email: '',
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Determine dashboard link based on role
+  const dashboardLink =
+    user_type?.toLowerCase() === 'vendor'
+      ? '/vendor/dashboard'
+      : user_type?.toLowerCase() === 'admin'
+      ? '/admin/dashboard'
+      : '/client/dashboard';
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await API.get('/auth/profile');
+        setProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleLogout = () => {
+    dispatch(setLogout());
+  };
+
+  if (loading) {
+    return <p className="text-gray-400">Loading profile...</p>;
+  }
+
+  return (
+    <div className="max-w-xl mx-auto bg-gray-800 p-6 rounded-xl border border-gray-700">
+      <h2 className="text-2xl font-bold mb-6 text-white">
+        My Profile
+      </h2>
+
+      <div className="space-y-4">
+        <div>
+          <p className="text-gray-400 text-sm">Name</p>
+          <p className="text-white font-medium">
+            {profile.name}
+          </p>
+        </div>
+
+        {profile.company_name && (
+          <div>
+            <p className="text-gray-400 text-sm">
+              Company Name
+            </p>
+            <p className="text-white font-medium">
+              {profile.company_name}
+            </p>
+          </div>
+        )}
+
+        <div>
+          <p className="text-gray-400 text-sm">Email</p>
+          <p className="text-white font-medium">
+            {profile.email}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-4 mt-8">
+        <Link
+          to={dashboardLink}
+          className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm font-medium transition"
+        >
+          Back to Dashboard
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;
+</file>
+
+<file path="src/pages/vendor/VendorDashboard.jsx">
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { setLogout } from '../../store/authSlice';
+import Notifications from '../../components/Notifications';
+import ActiveTenders from './ActiveTenders';
+import MyProposals from './MyProposals';
+
+const VendorDashboard = () => {
+  const dispatch = useDispatch();
+  const[activeTab, setActiveTab] = useState('active_tenders');
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+          <h1 className="text-3xl font-bold">Vendor Dashboard</h1>
+          <div className="flex gap-4">
+            <Link to="/profile" className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded font-bold transition flex items-center">
+              Profile
+            </Link>
+            <button onClick={() => dispatch(setLogout())} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold transition">
+              Logout
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <Notifications />
+            <div className="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col space-y-2">
+              <button 
+                onClick={() => setActiveTab('active_tenders')}
+                className={`w-full text-left px-4 py-3 rounded font-medium transition ${activeTab === 'active_tenders' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
+              >
+                Open Tenders
+              </button>
+              <button 
+                onClick={() => setActiveTab('my_proposals')}
+                className={`w-full text-left px-4 py-3 rounded font-medium transition ${activeTab === 'my_proposals' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
+              >
+                My Proposals
+              </button>
+            </div>
+          </div>
+          <div className="lg:col-span-3 bg-gray-800 p-6 rounded-xl border border-gray-700 min-h-[500px]">
+            {activeTab === 'active_tenders' && <ActiveTenders />}
+            {activeTab === 'my_proposals' && <MyProposals />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default VendorDashboard;
 </file>
 
 </files>

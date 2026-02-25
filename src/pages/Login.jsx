@@ -18,21 +18,30 @@ const Login = () => {
     try {
       const { data } = await API.post('/auth/login', { email, password });
       
-      // Save to Redux
+      // FIX: Handle cases where user_type is inside the user object OR at the root
+      const userType = data.user_type || data.user?.user_type;
+
+      if (!userType) {
+        throw new Error("User role is missing. Contact support.");
+      }
+
+      // Dispatch to Redux
       dispatch(setLogin({
         token: data.token,
-        user_type: data.user_type,
+        user_type: userType, 
         user: data.user
       }));
 
-      // Role-based navigation
-      const role = data.user_type?.toLowerCase();
+      // Navigate based on role (Case insensitive check)
+      const role = userType.toLowerCase();
+      
       if (role === 'admin') navigate('/admin/dashboard');
-      else if (role === 'client') navigate('/client/dashboard');
       else if (role === 'vendor') navigate('/vendor/dashboard');
+      else if (role === 'client') navigate('/client/dashboard'); 
       else navigate('/profile');
 
     } catch (error) {
+      console.error("Login failed:", error);
       alert(error.response?.data?.message || "Login failed.");
     } finally {
       setLoading(false);
@@ -49,11 +58,10 @@ const Login = () => {
             <label className="block text-gray-400 mb-1">Email Address</label>
             <input 
               type="email" 
-              autoComplete="email"
-              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="name@company.com"
+              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="name@company.com" 
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)} 
               required 
             />
           </div>
@@ -62,19 +70,12 @@ const Login = () => {
             <label className="block text-gray-400 mb-1">Password</label>
             <input 
               type="password" 
-              autoComplete="current-password"
-              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="••••••••"
+              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="••••••••" 
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)} 
               required 
             />
-          </div>
-
-          <div className="flex justify-end">
-            <Link to="/forgot-password" virtual="true" className="text-sm text-indigo-400 hover:text-indigo-300">
-              Forgot Password?
-            </Link>
           </div>
 
           <button 
@@ -87,10 +88,7 @@ const Login = () => {
         </form>
 
         <p className="mt-8 text-center text-gray-400">
-          Don't have an account? {' '}
-          <Link to="/register" className="text-indigo-400 font-medium hover:underline">
-            Register now
-          </Link>
+          Don't have an account? <Link to="/register" className="text-indigo-400 hover:underline">Register now</Link>
         </p>
       </div>
     </div>

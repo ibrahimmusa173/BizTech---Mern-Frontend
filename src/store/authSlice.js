@@ -1,4 +1,3 @@
-// src/store/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
 const authSlice = createSlice({
@@ -6,6 +5,7 @@ const authSlice = createSlice({
   initialState: {
     user: null, 
     token: localStorage.getItem('token') || null,
+    // CRITICAL: Read user_type from localStorage so it persists on refresh
     user_type: localStorage.getItem('user_type') || null,
   },
   reducers: {
@@ -14,16 +14,21 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user_type = action.payload.user_type;
       
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('user_type', action.payload.user_type);
+      // Save to LocalStorage properly
+      if (action.payload.token) {
+        localStorage.setItem('token', action.payload.token);
+      }
+      
+      if (action.payload.user_type) {
+        localStorage.setItem('user_type', action.payload.user_type);
+      }
     },
     setLogout: (state) => {
       state.user = null;
       state.token = null;
       state.user_type = null;
       
-      localStorage.removeItem('token');
-      localStorage.removeItem('user_type');
+      localStorage.clear(); // Clear everything to be safe
     },
   },
 });
