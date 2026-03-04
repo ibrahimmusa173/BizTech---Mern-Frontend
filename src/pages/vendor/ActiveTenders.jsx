@@ -8,15 +8,29 @@ const ActiveTenders = () => {
   useEffect(() => {
     const fetchTenders = async () => {
       try {
-        const { data } = await API.get('/tenders');
-        setTenders(data);
+        const response = await API.get('/tenders');
+        
+        // DEBUG: Check your Browser Console (F12) to see what the backend actually sends
+        console.log("BACKEND RESPONSE (Tenders):", response.data);
+        
+        // ULTRA-ROBUST EXTRACTION: Handle arrays, {data: []}, or {tenders: []}
+        let extractedData =[];
+        if (Array.isArray(response.data)) {
+          extractedData = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          extractedData = response.data.data;
+        } else if (response.data && Array.isArray(response.data.tenders)) {
+          extractedData = response.data.tenders;
+        }
+          
+        setTenders(extractedData);
       } catch (error) {
         console.error('Failed to fetch tenders:', error);
       }
     };
 
     fetchTenders();
-  }, []);
+  },[]);
 
   if (selectedTender) {
     return (
@@ -45,9 +59,14 @@ const ActiveTenders = () => {
               className="bg-gray-700 p-5 rounded border border-gray-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
             >
               <div>
-                <h3 className="text-xl font-semibold text-white">
-                  {tender.title}
-                </h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-semibold text-white">
+                    {tender.title}
+                  </h3>
+                  <span className={`px-2 py-0.5 text-[10px] rounded font-bold uppercase ${tender.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                    {tender.status || 'OPEN'}
+                  </span>
+                </div>
                 <p className="text-sm text-gray-400 mt-1">
                   Deadline:{' '}
                   {new Date(tender.deadline).toLocaleString()}
@@ -55,9 +74,7 @@ const ActiveTenders = () => {
               </div>
 
               <button
-                onClick={() =>
-                  setSelectedTender(tender._id)
-                }
+                onClick={() => setSelectedTender(tender._id)}
                 className="bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded transition font-medium whitespace-nowrap"
               >
                 View Details & Bid
@@ -81,15 +98,11 @@ const TenderDetails = ({ tenderId, onBack }) => {
   useEffect(() => {
     const fetchTender = async () => {
       try {
-        const { data } = await API.get(
-          `/tenders/${tenderId}`
-        );
+        const response = await API.get(`/tenders/${tenderId}`);
+        const data = response.data?.data || response.data?.tender || response.data;
         setTender(data);
       } catch (error) {
-        console.error(
-          'Failed to fetch tender details:',
-          error
-        );
+        console.error('Failed to fetch tender details:', error);
       }
     };
 
@@ -113,96 +126,54 @@ const TenderDetails = ({ tenderId, onBack }) => {
       alert('Proposal submitted successfully!');
       onBack();
     } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          'Failed to submit proposal'
-      );
+      alert(error.response?.data?.message || 'Failed to submit proposal');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!tender)
-    return (
-      <p className="text-gray-400">
-        Loading tender details...
-      </p>
-    );
+  if (!tender) return <p className="text-gray-400">Loading tender details...</p>;
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="text-indigo-400 hover:text-indigo-300 mb-6 flex items-center transition"
-      >
+      <button onClick={onBack} className="text-indigo-400 hover:text-indigo-300 mb-6 flex items-center transition">
         ← Back to Active Tenders
       </button>
 
       <div className="bg-gray-700 p-6 rounded border border-gray-600 mb-8">
-        <h2 className="text-2xl font-bold mb-3 text-white">
-          {tender.title}
-        </h2>
-
-        <p className="text-gray-300 mb-6 whitespace-pre-wrap">
-          {tender.description}
-        </p>
-
+        <h2 className="text-2xl font-bold mb-3 text-white">{tender.title}</h2>
+        <p className="text-gray-300 mb-6 whitespace-pre-wrap">{tender.description}</p>
         <p className="text-sm text-red-400 font-bold">
-          Deadline:{' '}
-          {new Date(tender.deadline).toLocaleString()}
+          Deadline: {new Date(tender.deadline).toLocaleString()}
         </p>
       </div>
 
-      <h3 className="text-xl font-bold mb-4 text-white">
-        Submit a Proposal
-      </h3>
+      <h3 className="text-xl font-bold mb-4 text-white">Submit a Proposal</h3>
 
-      <form
-        onSubmit={handleSubmitProposal}
-        className="space-y-4 max-w-lg"
-      >
+      <form onSubmit={handleSubmitProposal} className="space-y-4 max-w-lg">
         <div>
-          <label className="block text-gray-400 mb-1">
-            Bid Amount ($)
-          </label>
+          <label className="block text-gray-400 mb-1">Bid Amount ($)</label>
           <input
             required
             type="number"
             className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500"
             value={proposalData.amount}
-            onChange={(e) =>
-              setProposalData({
-                ...proposalData,
-                amount: e.target.value,
-              })
-            }
+            onChange={(e) => setProposalData({ ...proposalData, amount: e.target.value })}
           />
         </div>
 
         <div>
-          <label className="block text-gray-400 mb-1">
-            Cover Letter / Proposal Details
-          </label>
+          <label className="block text-gray-400 mb-1">Cover Letter / Proposal Details</label>
           <textarea
             required
             className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-indigo-500 h-32"
             value={proposalData.cover_letter}
-            onChange={(e) =>
-              setProposalData({
-                ...proposalData,
-                cover_letter: e.target.value,
-              })
-            }
+            onChange={(e) => setProposalData({ ...proposalData, cover_letter: e.target.value })}
           />
         </div>
 
-        <button
-          disabled={submitting}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition disabled:opacity-50"
-        >
-          {submitting
-            ? 'Submitting...'
-            : 'Submit Proposal'}
+        <button disabled={submitting} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition disabled:opacity-50">
+          {submitting ? 'Submitting...' : 'Submit Proposal'}
         </button>
       </form>
     </div>

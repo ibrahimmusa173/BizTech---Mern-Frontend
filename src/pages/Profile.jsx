@@ -26,8 +26,9 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await API.get('/auth/profile');
-        setProfile(data);
+        // Correctly unwrap nested 'data' object
+        const response = await API.get('/auth/profile');
+        setProfile(response.data.data); // ✅ Fixed here
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
