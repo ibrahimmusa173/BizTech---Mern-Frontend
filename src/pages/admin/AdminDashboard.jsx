@@ -10,8 +10,9 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('tenders');
-  const [tenders, setTenders] = useState([]); // Default to empty array
-  const [proposals, setProposals] = useState([]); // Default to empty array
+  const [tenders, setTenders] = useState([]);
+  const [proposals, setProposals] = useState([]);
+  const [users, setUsers] = useState([]); // New state for users
   const [loading, setLoading] = useState(false);
 
   const handleLogout = () => {
@@ -19,31 +20,26 @@ const AdminDashboard = () => {
     navigate('/login');
   };
 
-  // --- FIXED FETCH TENDERS ---
+  // --- FETCH TENDERS ---
   const fetchTenders = async () => {
     setLoading(true);
     try {
       const response = await API.get('/admin/tenders');
-      console.log("Tenders API Response:", response.data); // Look at your console to see the structure!
-      
-      // We check multiple common nesting patterns and force an array fallback
       const data = response.data?.data || response.data?.tenders || response.data;
-      setTenders(Array.isArray(data) ? data : []); 
+      setTenders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching tenders:', error);
-      setTenders([]); // Ensure it stays an array on error
+      setTenders([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- FIXED FETCH PROPOSALS ---
+  // --- FETCH PROPOSALS ---
   const fetchProposals = async () => {
     setLoading(true);
     try {
       const response = await API.get('/admin/proposals');
-      console.log("Proposals API Response:", response.data);
-
       const data = response.data?.data || response.data?.proposals || response.data;
       setProposals(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -54,19 +50,49 @@ const AdminDashboard = () => {
     }
   };
 
+  // --- NEW: FETCH USERS ---
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await API.get('/admin/users');
+      const data = response.data?.data || response.data?.users || response.data;
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApproveTender = async (tenderId) => {
     try {
       await API.put(`/admin/tenders/${tenderId}/status`, { status: 'active' });
       alert('Tender approved successfully!');
-      fetchTenders(); 
+      fetchTenders();
     } catch (error) {
       console.error('Error approving tender:', error);
     }
   };
 
+  // --- NEW: BLOCK USER LOGIC ---
+  const handleBlockUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to block this user?")) return;
+    try {
+      // Assuming patch/put based on your endpoint structure
+      await API.put(`/admin/users/${userId}/block`);
+      alert('User blocked successfully!');
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      console.error('Error blocking user:', error);
+      alert('Failed to block user. Check if the route exists.');
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'tenders') fetchTenders();
-    else fetchProposals();
+    else if (activeTab === 'proposals') fetchProposals();
+    else if (activeTab === 'users') fetchUsers();
   }, [activeTab]);
 
   return (
@@ -81,12 +107,16 @@ const AdminDashboard = () => {
       <div className="max-w-6xl mx-auto space-y-8">
         <UserProfileCard />
 
-        <div className="flex border-b border-gray-700">
-          <button onClick={() => setActiveTab('tenders')} className={`px-6 py-3 font-semibold transition-colors ${activeTab === 'tenders' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+        {/* Tab Navigation updated with "Manage Users" */}
+        <div className="flex border-b border-gray-700 overflow-x-auto">
+          <button onClick={() => setActiveTab('tenders')} className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${activeTab === 'tenders' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
             Manage Tenders
           </button>
-          <button onClick={() => setActiveTab('proposals')} className={`px-6 py-3 font-semibold transition-colors ${activeTab === 'proposals' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+          <button onClick={() => setActiveTab('proposals')} className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${activeTab === 'proposals' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
             View All Proposals
+          </button>
+          <button onClick={() => setActiveTab('users')} className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${activeTab === 'users' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+            Manage Users
           </button>
         </div>
 
@@ -94,6 +124,7 @@ const AdminDashboard = () => {
           {loading ? (
             <p className="text-gray-400">Loading data...</p>
           ) : activeTab === 'tenders' ? (
+            /* Tenders Table */
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -104,7 +135,6 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {/* Defensive check: Use Array.isArray to prevent crash */}
                   {Array.isArray(tenders) && tenders.map((tender) => (
                     <tr key={tender._id} className="hover:bg-gray-750">
                       <td className="py-4 font-medium">{tender.title}</td>
@@ -122,13 +152,11 @@ const AdminDashboard = () => {
                       </td>
                     </tr>
                   ))}
-                  {(!tenders || tenders.length === 0) && (
-                    <tr><td colSpan="3" className="py-10 text-center text-gray-500">No tenders found.</td></tr>
-                  )}
                 </tbody>
               </table>
             </div>
-          ) : (
+          ) : activeTab === 'proposals' ? (
+            /* Proposals Table */
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -146,9 +174,39 @@ const AdminDashboard = () => {
                       <td className="py-4 uppercase text-xs">{prop.status}</td>
                     </tr>
                   ))}
-                  {(!proposals || proposals.length === 0) && (
-                    <tr><td colSpan="3" className="py-10 text-center text-gray-500">No proposals found.</td></tr>
-                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* NEW: Users Table */
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-gray-400 border-b border-gray-700">
+                    <th className="pb-3">Name</th>
+                    <th className="pb-3">Email</th>
+                    <th className="pb-3">Role</th>
+                    <th className="pb-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {Array.isArray(users) && users.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-750 transition">
+                      <td className="py-4 font-medium">{user.name}</td>
+                      <td className="py-4 text-gray-300">{user.email}</td>
+                      <td className="py-4 uppercase text-xs text-indigo-300 font-bold">{user.role || user.user_type}</td>
+                      <td className="py-4 text-right">
+                        {user.role !== 'admin' && (
+                          <button 
+                            onClick={() => handleBlockUser(user._id)} 
+                            className="bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-700 text-xs px-3 py-1.5 rounded transition"
+                          >
+                            Block User
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
