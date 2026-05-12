@@ -26,9 +26,8 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // Correctly unwrap nested 'data' object
         const response = await API.get('/auth/profile');
-        setProfile(response.data.data); // ✅ Fixed here
+        setProfile(response.data.data); 
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
@@ -80,17 +79,25 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="flex gap-4 mt-8">
+      <div className="flex flex-wrap gap-4 mt-8">
         <Link
           to={dashboardLink}
-          className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm font-medium transition"
+          className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm font-medium transition text-white"
         >
           Back to Dashboard
         </Link>
 
+        {/* --- ADDED EDIT PROFILE BUTTON --- */}
+        <Link
+          to="/edit-profile" 
+          className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-medium transition text-white"
+        >
+          Edit Profile
+        </Link>
+
         <button
           onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition"
+          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition text-white"
         >
           Logout
         </button>
