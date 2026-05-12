@@ -9,6 +9,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ClientDashboard from './pages/client/ClientDashboard';
 import VendorDashboard from './pages/vendor/VendorDashboard';
 import EditProfile from './pages/EditProfile';
+import ActiveTenders from './pages/vendor/ActiveTenders';
+import MyProposals from './pages/vendor/MyProposals';
 
 function App() {
   return (
@@ -36,6 +38,9 @@ function App() {
             <VendorDashboard />
           </ProtectedRoute>
         } />
+
+        <Route path="/vendor/active-tenders" element={<ActiveTenders />} />
+        <Route path="/vendor/my-proposals" element={<MyProposals />} />
 
         <Route path="/profile" element={
           <ProtectedRoute>
