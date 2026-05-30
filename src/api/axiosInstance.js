@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { store } from '../store'; // Import store to dispatch logout
+import { store } from '../store';
 import { setLogout } from '../store/authSlice';
 
 const API = axios.create({
-  baseURL: 'http://localhost:7000/api',
+  baseURL: `${import.meta.env.VITE_API_URL}/api`,
 });
 
 API.interceptors.request.use((req) => {
@@ -14,12 +14,10 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
-// NEW: Add a response interceptor to handle expired tokens
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // If token is invalid or expired, clear state and kick to login
       store.dispatch(setLogout());
       window.location.href = '/login';
     }
