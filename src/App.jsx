@@ -1,5 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+// src/App.jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Removed Navigate as it's not needed for the root anymore
 import ProtectedRoute from './components/ProtectedRoute';
+
+// Import the new Home page
+import Home from './pages/Home'; 
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -14,11 +18,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
+        {/* UPDATED: Root path now shows the Landing Page */}
+        <Route path="/" element={<Home />} />
+        
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         
+        {/* ... (Keep the rest of your ProtectedRoutes the same) */}
         <Route path="/admin/dashboard" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminDashboard />
@@ -60,6 +67,3 @@ function App() {
 }
 
 export default App;
-
-
-
