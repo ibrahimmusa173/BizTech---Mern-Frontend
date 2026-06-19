@@ -85,16 +85,24 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleApproveTender = async (tenderId) => {
-    try {
-      await API.put(`/admin/tenders/${tenderId}/status`, { status: 'active' });
-      alert('Tender approved successfully!');
-      fetchTenders();
-      fetchStats(); 
-    } catch (error) {
-      console.error('Error approving tender:', error);
-    }
-  };
+  // --- UPDATED: handleToggleTenderStatus ---
+const handleToggleTenderStatus = async (tender) => {
+  // Determine next status based on current status
+  const newStatus = tender.status === 'active' ? 'rejected' : 'active';
+  const actionText = newStatus === 'active' ? 'approve' : 'reject';
+
+  if (!window.confirm(`Are you sure you want to ${actionText} this tender?`)) return;
+
+  try {
+    const response = await API.put(`/admin/tenders/${tender._id}/status`, { status: newStatus });
+    alert(response.data.message);
+    fetchTenders();
+    fetchStats(); 
+  } catch (error) {
+    console.error('Error updating tender status:', error);
+    alert("Failed to update status.");
+  }
+};
 
   // --- UPDATED: handleBlockUser ---
 const handleBlockUser = async (user) => {
@@ -169,31 +177,47 @@ const handleBlockUser = async (user) => {
           {loading ? (
             <p className="text-gray-400">Loading data...</p>
           ) : activeTab === 'tenders' ? (
-            /* Tenders Table */
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-gray-400 border-b border-gray-700">
-                    <th className="pb-3 px-2">Title</th>
-                    <th className="pb-3 px-2">Status</th>
-                    <th className="pb-3 px-2">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {tenders.map((tender) => (
-                    <tr key={tender._id}>
-                      <td className="py-4 px-2">{tender.title}</td>
-                      <td className="py-4 px-2 uppercase text-xs">{tender.status}</td>
-                      <td className="py-4 px-2 text-right">
-                        {tender.status !== 'active' && (
-                          <button onClick={() => handleApproveTender(tender._id)} className="bg-indigo-600 px-3 py-1.5 rounded text-xs">Approve</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+           /* Tenders Table */
+<div className="overflow-x-auto">
+  <table className="w-full text-left">
+    <thead>
+      <tr className="text-gray-400 border-b border-gray-700">
+        <th className="pb-3 px-2">Title</th>
+        <th className="pb-3 px-2">Status</th>
+        <th className="pb-3 px-2 text-right">Action</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-700">
+      {tenders.map((tender) => (
+        <tr key={tender._id}>
+          <td className="py-4 px-2">{tender.title}</td>
+          <td className="py-4 px-2">
+            {/* Show status Badge */}
+            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+              tender.status === 'active' ? 'bg-emerald-900/50 text-emerald-400' : 
+              tender.status === 'rejected' ? 'bg-red-900/50 text-red-400' : 
+              'bg-amber-900/50 text-amber-400' // For 'pending'
+            }`}>
+              {tender.status}
+            </span>
+          </td>
+          <td className="py-4 px-2 text-right">
+            <button 
+              onClick={() => handleToggleTenderStatus(tender)} 
+              className={`px-3 py-1.5 rounded text-xs transition ${
+                tender.status === 'active' 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-indigo-600 hover:bg-indigo-700'
+              }`}
+            >
+              {tender.status === 'active' ? 'Reject' : 'Approve'}
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
           ) : activeTab === 'proposals' ? (
             /* Proposals Table */
             <div className="overflow-x-auto">
