@@ -114,13 +114,11 @@ const TenderDetails = ({ tenderId, onBack }) => {
     setSubmitting(true);
 
     try {
+      // UPDATED: Sending clean keys that match the Backend Schema
       await API.post('/proposals', {
-        tenderId,
         tender_id: tenderId,
-        bid_amount: proposalData.amount,
-        amount: proposalData.amount,
-        cover_letter: proposalData.cover_letter,
-        details: proposalData.cover_letter,
+        amount: Number(proposalData.amount), // Ensure it is sent as a number
+        cover_letter: proposalData.cover_letter
       });
 
       alert('Proposal submitted successfully!');
