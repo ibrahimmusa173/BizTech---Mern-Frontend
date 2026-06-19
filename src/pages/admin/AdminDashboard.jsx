@@ -96,16 +96,24 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleBlockUser = async (userId) => {
-    if (!window.confirm("Are you sure you want to block this user?")) return;
-    try {
-      await API.put(`/admin/users/${userId}/block`);
-      alert('User blocked successfully!');
-      fetchUsers();
-    } catch (error) {
-      console.error('Error blocking user:', error);
-    }
-  };
+  // --- UPDATED: handleBlockUser ---
+const handleBlockUser = async (user) => {
+  const action = user.is_blocked ? 'unblock' : 'block';
+  
+  if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+
+  try {
+    const response = await API.put(`/admin/users/${user._id}/block`);
+    
+    // Use the message from your backend response ("User blocked successfully" etc.)
+    alert(response.data.message); 
+    
+    fetchUsers(); // Refresh the list to show updated status
+  } catch (error) {
+    console.error(`Error trying to ${action} user:`, error);
+    alert("An error occurred. Please try again.");
+  }
+};
 
   useEffect(() => {
     fetchStats();
@@ -208,28 +216,47 @@ const AdminDashboard = () => {
             </div>
           ) : (
             /* Users Table */
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-gray-400 border-b border-gray-700">
-                    <th className="pb-3 px-2">Name</th>
-                    <th className="pb-3 px-2">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {users.map((user) => (
-                    <tr key={user._id}>
-                      <td className="py-4 px-2">{user.name}</td>
-                      <td className="py-4 px-2 text-right">
-                        {(user.role !== 'admin' && user.user_type !== 'admin') && (
-                          <button onClick={() => handleBlockUser(user._id)} className="bg-red-600 px-3 py-1.5 rounded text-xs">Block</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            /* Users Table */
+<div className="overflow-x-auto">
+  <table className="w-full text-left">
+    <thead>
+      <tr className="text-gray-400 border-b border-gray-700">
+        <th className="pb-3 px-2">Name</th>
+        <th className="pb-3 px-2">Status</th> {/* New Status Column */}
+        <th className="pb-3 px-2 text-right">Action</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-700">
+      {users.map((user) => (
+        <tr key={user._id}>
+          <td className="py-4 px-2">{user.name}</td>
+          <td className="py-4 px-2">
+            {/* Show status Badge */}
+            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+              user.is_blocked ? 'bg-red-900/50 text-red-400' : 'bg-emerald-900/50 text-emerald-400'
+            }`}>
+              {user.is_blocked ? 'Blocked' : 'Active'}
+            </span>
+          </td>
+          <td className="py-4 px-2 text-right">
+            {(user.role !== 'admin' && user.user_type !== 'admin') && (
+              <button 
+                onClick={() => handleBlockUser(user)} // Pass the whole user object
+                className={`px-3 py-1.5 rounded text-xs transition ${
+                  user.is_blocked 
+                    ? 'bg-emerald-600 hover:bg-emerald-700' // Green for Unblock
+                    : 'bg-red-600 hover:bg-red-700'         // Red for Block
+                }`}
+              >
+                {user.is_blocked ? 'Unblock' : 'Block'}
+              </button>
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
           )}
         </div>
       </div>
