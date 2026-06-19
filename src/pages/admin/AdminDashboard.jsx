@@ -219,26 +219,45 @@ const handleBlockUser = async (user) => {
   </table>
 </div>
           ) : activeTab === 'proposals' ? (
-            /* Proposals Table */
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-gray-400 border-b border-gray-700">
-                    <th className="pb-3 px-2">Vendor</th>
-                    <th className="pb-3 px-2">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {proposals.map((prop) => (
-                    <tr key={prop._id}>
-                      <td className="py-4 px-2">{prop.vendorId?.name || 'N/A'}</td>
-                      <td className="py-4 px-2 text-emerald-400 font-bold">${prop.proposedAmount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
+  /* Proposals Table - UPDATED */
+  <div className="overflow-x-auto">
+    <table className="w-full text-left">
+      <thead>
+        <tr className="text-gray-400 border-b border-gray-700">
+          <th className="pb-3 px-2">Vendor & Company</th>
+          <th className="pb-3 px-2">Tender</th>
+          <th className="pb-3 px-2">Amount</th>
+          <th className="pb-3 px-2">Details</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-700">
+        {proposals.length > 0 ? (
+          proposals.map((prop) => (
+            <tr key={prop._id} className="hover:bg-gray-700/30 transition-colors">
+              <td className="py-4 px-2">
+                <div className="font-medium text-white">{prop.vendor_id?.name || 'N/A'}</div>
+                <div className="text-xs text-gray-400">{prop.vendor_id?.company_name || 'No Company'}</div>
+              </td>
+              <td className="py-4 px-2 text-sm text-indigo-300">
+                {prop.tender_id?.title || 'N/A'}
+              </td>
+              <td className="py-4 px-2 text-emerald-400 font-bold">
+                ${prop.proposedAmount || prop.amount || 0}
+              </td>
+              <td className="py-4 px-2 text-sm text-gray-400 max-w-xs truncate">
+                {prop.description || prop.details || 'No details provided'}
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="4" className="py-10 text-center text-gray-500">No proposals found.</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+) : (
             /* Users Table */
             /* Users Table */
 <div className="overflow-x-auto">
