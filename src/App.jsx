@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 
 import AuthSuccess from './pages/AuthSuccess';
+import ChooseRole from './pages/ChooseRole';
 
 // Import the new Home page
 import Home from './pages/Home'; 
@@ -28,6 +29,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/success" element={<AuthSuccess />} />
+        <Route path="/choose-role" element={<ChooseRole />} />
         
         {/* ... (Keep the rest of your ProtectedRoutes the same) */}
         <Route path="/admin/dashboard" element={
