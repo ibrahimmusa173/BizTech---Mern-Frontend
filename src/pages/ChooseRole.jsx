@@ -25,13 +25,20 @@ const ChooseRole = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('user_type', selected);
 
-      if (selected === 'vendor') navigate('/vendor/dashboard');
+      if (selected === 'admin') navigate('/admin/dashboard');
+      else if (selected === 'vendor') navigate('/vendor/dashboard');
       else navigate('/client/dashboard');
-     } catch {
+    } catch {
       alert('Failed to set role. Please try again.');
     } finally {         
       setLoading(false);
     }
+  };
+
+  const roleDescriptions = {
+    client: 'I want to post tenders and find vendors',
+    vendor: 'I want to bid on tenders and offer services',
+    admin: 'I want to manage the platform and users',
   };
 
   return (
@@ -45,7 +52,7 @@ const ChooseRole = () => {
         </p>
 
         <div className="space-y-3 mb-8">
-          {['client', 'vendor'].map((role) => (
+          {['client', 'vendor', 'admin'].map((role) => (
             <button
               key={role}
               onClick={() => setSelected(role)}
@@ -57,10 +64,7 @@ const ChooseRole = () => {
             >
               <div className="font-semibold capitalize">{role}</div>
               <div className="text-sm mt-1 opacity-70">
-                {role === 'client' 
-                  ? 'I want to post tenders and find vendors'
-                  : 'I want to bid on tenders and offer services'
-                }
+                {roleDescriptions[role]}
               </div>
             </button>
           ))}
