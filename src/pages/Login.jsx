@@ -18,21 +18,18 @@ const Login = () => {
     try {
       const { data } = await API.post('/auth/login', { email, password });
       
-      // FIX: Handle cases where user_type is inside the user object OR at the root
       const userType = data.user_type || data.user?.user_type;
 
       if (!userType) {
         throw new Error("User role is missing. Contact support.");
       }
 
-      // Dispatch to Redux
       dispatch(setLogin({
         token: data.token,
         user_type: userType, 
         user: data.user
       }));
 
-      // Navigate based on role (Case insensitive check)
       const role = userType.toLowerCase();
       
       if (role === 'admin') navigate('/admin/dashboard');
@@ -86,6 +83,28 @@ const Login = () => {
             {loading ? "Signing in..." : "Login"}
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="flex-1 h-px bg-gray-600" />
+          <span className="text-gray-500 text-sm">or</span>
+          <div className="flex-1 h-px bg-gray-600" />
+        </div>
+
+        {/* Google Login Button */}
+        <a href={`${import.meta.env.VITE_API_URL}/auth/google`} className="block">
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 rounded transition duration-200"
+          >
+            <img 
+              src="https://www.svgrepo.com/show/475656/google-color.svg" 
+              alt="Google" 
+              className="w-5 h-5" 
+            />
+            Continue with Google
+          </button>
+        </a>
 
         <p className="mt-8 text-center text-gray-400">
           Don't have an account? <Link to="/register" className="text-indigo-400 hover:underline">Register now</Link>

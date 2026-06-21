@@ -2,6 +2,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Removed Navigate as it's not needed for the root anymore
 import ProtectedRoute from './components/ProtectedRoute';
 
+
+import AuthSuccess from './pages/AuthSuccess';
+
 // Import the new Home page
 import Home from './pages/Home'; 
 
@@ -24,6 +27,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/success" element={<AuthSuccess />} />
         
         {/* ... (Keep the rest of your ProtectedRoutes the same) */}
         <Route path="/admin/dashboard" element={
