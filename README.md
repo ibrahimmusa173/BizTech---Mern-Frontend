@@ -1,38 +1,57 @@
-BizTech - Enterprise Frontend Portal
-💡 Tech Stack
-Core: React 19
-Build Tool: Vite 8
-Styling: Tailwind CSS v4 (Next-gen engine)
-State Management: Redux Toolkit
-Routing: React Router 7
-API Client: Axios with Interceptors
-Authentication: OAuth 2.0 (Social Login) & JWT
-Search Engine Integration: MongoDB Atlas Search
-Icons: Custom SVG & Lucide-style iconography
-✨ Key Features
-🔐 Advanced Authentication
-Social Auth (OAuth 2.0): Integrated one-click login/registration via Google and GitHub for a frictionless user experience.
-Role-Based Protected Routes: Separate entry points and permissions for Admin, Client, and Vendor.
-Session Persistence: Secure JWT handling using Redux and LocalStorage.
-Smart Interceptors: Automatic logout and redirection to login if a session expires (401 handling).
-Account Recovery: Integrated Forgot Password flow.
-🏗️ Role-Specific Dashboards
-Client Dashboard:
-Create and manage detailed Tenders.
-Set deadlines and update them in real-time.
-Review submitted proposals and Accept/Reject bids.
-Vendor Dashboard (Marketplace):
-Intelligent Discovery: High-performance search bar powered by Atlas Search, featuring fuzzy matching and real-time filtering to help vendors find the right opportunities.
-Browse an "Active Tenders" marketplace with advanced search capabilities.
-Submit detailed proposals (Bid amount + Cover letter).
-Track application status (Pending/Accepted/Rejected).
-Admin Dashboard:
-Centralized hub for platform governance and statistics.
-👤 Profile & Notifications
-Profile Management: View and edit personal/company information, including linked social accounts.
-Notification System: Real-time feedback for users when proposal statuses change or new bids are received.
-🚀 Getting Started
-Clone the repo
-Install dependencies: npm install
-Set up Environment Variables: Create a .env file for your OAuth Client IDs and Backend URL.
-Run development server: npm run dev
+# 🚀 BizTech - Enterprise Frontend Portal
+
+A high-performance, enterprise-grade procurement and bidding platform built with the latest React ecosystem.
+
+---
+
+### 💡 Tech Stack
+
+*   **Core:** React 19 (Latest)
+*   **Build Tool:** Vite 8
+*   **Styling:** Tailwind CSS v4 (Next-gen Engine)
+*   **State Management:** Redux Toolkit
+*   **Routing:** React Router 7
+*   **API Client:** Axios (with Secure Interceptors)
+*   **Authentication:** OAuth 2.0 (Social) & JWT
+*   **Payment Gateway:** Stripe Checkout Integration 💳
+*   **Icons:** Lucide-style & Custom SVG Iconography
+
+---
+
+### ✨ Key Features
+
+#### 🔐 Advanced Authentication
+*   **Social Auth (OAuth 2.0):** One-click login via Google/GitHub for a frictionless experience.
+*   **Role-Based Protected Routes:** Dynamic routing logic for Admin, Client, and Vendor roles.
+*   **Session Persistence:** Persistent state management using Redux & LocalStorage.
+*   **Smart Interceptors:** Automatic token refresh and 401-unauthorized redirect handling.
+
+#### 🏗️ Role-Specific Dashboards
+
+**👤 Client Dashboard**
+*   **Tender Lifecycle:** Create, draft, and publish detailed project tenders.
+*   **Deadline Management:** Set and adjust deadlines with real-time validation.
+*   **Bid Management:** Compare proposals and use "Accept/Reject" workflows.
+
+**💼 Vendor Dashboard (Marketplace)**
+*   **Intelligent Discovery:** High-performance search powered by Atlas Search with fuzzy matching.
+*   **Proposal Engine:** Submit bids with dynamic pricing and professional cover letters.
+*   **Application Tracking:** Real-time status updates (Pending, Accepted, Rejected).
+*   **💎 Premium Upgrade:** Integrated Stripe payment flow to become a "Featured Vendor."
+
+**🛡️ Admin Dashboard**
+*   **Platform Governance:** Moderate tenders and manage user account statuses.
+*   **Analytics Engine:** High-level overview of platform revenue, user growth, and tender success rates.
+
+---
+
+#### 💎 Premium Vendor Benefits (Monetization)
+*   **Featured Badge:** Stand out in the marketplace with a premium visual badge.
+*   **Data Unlocking:** Featured vendors gain exclusive access to view Client contact details (Email/Phone) to close deals faster.
+*   **Seamless Checkout:** Integrated Stripe UI for secure, encrypted credit card transactions.
+
+---
+
+### 👤 Profile & Notifications
+*   **Profile Management:** Comprehensive editing of company profiles and linked accounts.
+*   **Real-time Notifications:** Instant feedback on proposal status changes and new bid alerts.
